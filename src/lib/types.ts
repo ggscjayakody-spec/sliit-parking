@@ -77,5 +77,5 @@ export interface RegisterInput {
   vehicleNumber: string;
   vehicleType: VehicleType;
   password: string;
-  paymentSlip: File;
+  paymentSlip?: File | null; // optional: with a slip the pass is issued right away
 }

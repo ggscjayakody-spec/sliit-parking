@@ -23,7 +23,7 @@ export default function PayFees() {
     const list: Choice[] = (fees ?? [])
       .filter((f: Fee) => f.status === "unpaid")
       .map((f) => ({ key: f.id, label: f.reason, detail: `${f.date} · ${f.vehicleNumber}`, amount: f.amount, kind: "fee", feeId: f.id }));
-    if (student.passStatus !== "active" && student.passStatus !== "pending") {
+    if (student.passStatus !== "active") {
       list.unshift({ key: "pass", label: "Vehicle pass fee", detail: "Valid for 1 year", amount: PRICES.pass, kind: "pass" });
     }
     return list;

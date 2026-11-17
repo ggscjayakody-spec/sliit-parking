@@ -32,7 +32,7 @@ interface DB {
   fees: Fee[];
 }
 
-const KEY = "sp_mock_db_v1";
+const KEY = "sp_mock_db_v2";
 
 function seed(): DB {
   return {
@@ -65,6 +65,18 @@ function seed(): DB {
         contact: "0759876543",
         vehicleNumber: "KS-9467",
         vehicleType: "Car",
+        passStatus: "active",
+        passValidUntil: "2027-11-03",
+        qrToken: "SLIITPARK:IT26543867",
+        password: "password123",
+      },
+      // Registered without a slip → sees "Vehicle Pass Pending…"
+      {
+        id: "IT26777001",
+        fullName: "Sahan Fernando",
+        contact: "0701234567",
+        vehicleNumber: "WP-4521",
+        vehicleType: "Motorbike",
         passStatus: "pending",
         passValidUntil: null,
         qrToken: null,
@@ -104,6 +116,21 @@ function save(db: DB) {
   try {
     window.localStorage.setItem(KEY, JSON.stringify(db));
   } catch {}
+}
+
+/** Issue the QR pass straight away. The admin still checks the slip later and can revoke it. */
+function activatePass(s: Student) {
+  const until = new Date();
+  until.setFullYear(until.getFullYear() + 1);
+  s.passStatus = "active";
+  s.passValidUntil = until.toISOString().slice(0, 10);
+  s.qrToken = `SLIITPARK:${s.id}`;
+}
+
+function revokePass(s: Student) {
+  s.passStatus = "rejected";
+  s.passValidUntil = null;
+  s.qrToken = null;
 }
 
 const delay = <T,>(v: T, ms = 350) => new Promise<T>((r) => setTimeout(() => r(v), ms));
@@ -149,7 +176,7 @@ export const mock = {
     const db = load();
     const id = input.id.trim().toUpperCase();
     if (db.students.some((s) => s.id === id)) throw new ApiError("This IT number is already registered.", 409);
-    db.students.push({
+    const student: DB["students"][number] = {
       id,
       fullName: input.fullName.trim(),
       contact: input.contact.trim(),
@@ -159,16 +186,22 @@ export const mock = {
       passValidUntil: null,
       qrToken: null,
       password: input.password,
-    });
-    db.payments.push({
-      id: uid("P"),
-      studentId: id,
-      kind: "pass",
-      amount: 1500,
-      date: today(),
-      status: "pending",
-      slipUrl: await fileToDataUrl(input.paymentSlip),
-    });
+    };
+    db.students.push(student);
+    if (input.paymentSlip) {
+      // Slip uploaded → QR pass now; payment waits in the admin's pending list.
+      activatePass(student);
+      db.payments.push({
+        id: uid("P"),
+        studentId: id,
+        kind: "pass",
+        amount: 1500,
+        date: today(),
+        status: "pending",
+        slipUrl: await fileToDataUrl(input.paymentSlip),
+      });
+    }
+    // No slip → passStatus stays "pending" until they upload one from Pay Fees.
     save(db);
     return delay({ ok: true as const });
   },
@@ -222,7 +255,7 @@ export const mock = {
     }
     if (input.kind === "pass") {
       const s = db.students.find((x) => x.id === id);
-      if (s && s.passStatus !== "active") s.passStatus = "pending";
+      if (s && s.passStatus !== "active") activatePass(s);
     }
     save(db);
     return delay(p);
@@ -310,13 +343,9 @@ export const mock = {
       const s = db.students.find((x) => x.id === p.studentId);
       if (s) {
         if (status === "approved") {
-          const until = new Date();
-          until.setFullYear(until.getFullYear() + 1);
-          s.passStatus = "active";
-          s.passValidUntil = until.toISOString().slice(0, 10);
-          s.qrToken = `SLIITPARK:${s.id}`;
-        } else if (s.passStatus !== "active") {
-          s.passStatus = "rejected";
+          if (s.passStatus !== "active") activatePass(s);
+        } else {
+          revokePass(s); // fake or wrong slip → QR stops working
         }
       }
     }

@@ -78,7 +78,7 @@ export const api = {
     fd.set("vehicleNumber", input.vehicleNumber);
     fd.set("vehicleType", input.vehicleType);
     fd.set("password", input.password);
-    fd.set("paymentSlip", input.paymentSlip);
+    if (input.paymentSlip) fd.set("paymentSlip", input.paymentSlip);
     return request<{ ok: true }>("/auth/student/register", { method: "POST", body: fd });
   },
 

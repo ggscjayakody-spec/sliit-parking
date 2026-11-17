@@ -35,7 +35,6 @@ export default function Register() {
     if (form.password !== form.confirm) return setError("Passwords don't match.");
     if (!/^0\d{9}$/.test(form.contact.replace(/\s/g, ""))) return setError("Contact number should be 10 digits, e.g. 0771234567.");
     if (!form.vehicleType) return setError("Choose a vehicle type.");
-    if (!slip) return setError("Upload the payment slip for your vehicle pass.");
 
     setLoading(true);
     try {
@@ -48,7 +47,7 @@ export default function Register() {
         password: form.password,
         paymentSlip: slip,
       });
-      router.push("/register/success");
+      router.push(slip ? "/register/success?slip=1" : "/register/success");
     } catch (err) {
       setError(errorMessage(err));
       setLoading(false);
@@ -60,7 +59,7 @@ export default function Register() {
       <Card className="w-full max-w-3xl p-6 sm:p-8">
         <h1 className="text-center text-2xl font-extrabold text-ink sm:text-3xl">Student Registration for SLIIT Parking</h1>
         <p className="mt-1 text-center text-sm text-ink-soft">
-          Pay the {money(PRICES.pass)} vehicle pass fee at the bank, then upload the slip below.
+          Upload your {money(PRICES.pass)} vehicle pass payment slip to get your QR pass right away, or skip it and upload later.
         </p>
 
         <form onSubmit={submit} className="mt-6 grid gap-4 sm:grid-cols-2 sm:gap-x-6">
@@ -77,7 +76,7 @@ export default function Register() {
               <option key={t}>{t}</option>
             ))}
           </SelectField>
-          <FileField label="Payment Slip" file={slip} onFile={setSlip} />
+          <FileField label="Payment Slip (optional)" file={slip} onFile={setSlip} />
           <Field label="Student Vehicle Number" placeholder="CAB-1234" value={form.vehicleNumber} onChange={set("vehicleNumber")} autoCapitalize="characters" required />
 
           <div className="sm:col-span-2">

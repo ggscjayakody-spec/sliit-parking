@@ -86,20 +86,18 @@ function PassNotReady({ status }: { status: string }) {
       ? { title: "Vehicle pass payment rejected", body: "Your payment slip couldn't be verified. Please upload a new slip from Pay Fees." }
       : status === "expired"
         ? { title: "Vehicle pass expired", body: "Renew your pass by paying the pass fee from Pay Fees." }
-        : { title: "Vehicle Pass Pending…", body: "Awaiting payment verification. Your QR code will appear here once an admin approves your slip." };
+        : { title: "Vehicle Pass Pending…", body: "Awaiting Payment Verification" };
 
   return (
-    <div className="flex flex-col items-center px-6 py-14 text-center">
-      <div className="relative flex h-20 w-20 items-center justify-center rounded-2xl bg-lilac-100">
-        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#8b7cf0" strokeWidth="1.8">
-          <rect x="3" y="3" width="7" height="7" rx="1" />
-          <rect x="14" y="3" width="7" height="7" rx="1" />
-          <rect x="3" y="14" width="7" height="7" rx="1" />
-          <path d="M14 14h3v3h-3zM20 14v.01M14 20h.01M17 20h4v-3" strokeLinecap="round" />
-        </svg>
-      </div>
-      <p className="mt-5 text-xl font-extrabold italic">{copy.title}</p>
-      <p className="mt-1 max-w-sm text-ink-soft">{copy.body}</p>
+    <div className="flex flex-col items-center px-6 py-16 text-center">
+      <p className="text-xl italic text-ink-soft">{copy.title}</p>
+      <p className="mt-1 text-xl font-semibold text-ink">{copy.body}</p>
+      <p className="mt-6 max-w-sm text-sm text-ink-soft">
+        Upload your vehicle pass payment slip to get your QR pass.
+      </p>
+      <ButtonLink href="/student/pay" variant="coral" className="mt-3">
+        Upload payment slip
+      </ButtonLink>
     </div>
   );
 }
