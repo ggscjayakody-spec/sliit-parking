@@ -76,9 +76,12 @@ export default function Register() {
               <option key={t}>{t}</option>
             ))}
           </SelectField>
-          <FileField label="Payment Slip (optional)" file={slip} onFile={setSlip} />
+          <FileField label="Payment Slip" optional file={slip} onFile={setSlip} />
           <Field label="Student Vehicle Number" placeholder="CAB-1234" value={form.vehicleNumber} onChange={set("vehicleNumber")} autoCapitalize="characters" required />
 
+          <p className="-mt-1 text-xs text-ink-soft sm:col-span-2">
+            <span className="text-coral">*</span> Optional
+          </p>
           <div className="sm:col-span-2">
             <ErrorText>{error}</ErrorText>
           </div>

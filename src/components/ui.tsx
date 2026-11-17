@@ -134,15 +134,24 @@ export function FileField({
   file,
   onFile,
   required,
+  optional,
 }: {
   label: string;
   file: File | null;
   onFile: (f: File | null) => void;
   required?: boolean;
+  optional?: boolean;
 }) {
   return (
     <label className="block">
-      <span className="mb-1 block text-sm font-semibold text-ink-soft">{label}</span>
+      <span className="mb-1 block text-sm font-semibold text-ink-soft">
+        {label}
+        {optional && (
+          <span className="ml-0.5 text-coral" aria-label="optional" title="Optional">
+            *
+          </span>
+        )}
+      </span>
       <span className="field flex cursor-pointer items-center gap-2 truncate">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="shrink-0 text-ink-soft">
           <path d="M12 16V4m0 0-4 4m4-4 4 4M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" strokeLinecap="round" strokeLinejoin="round" />
