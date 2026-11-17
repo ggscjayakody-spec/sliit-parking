@@ -9,6 +9,8 @@ import { useStudent } from "@/components/StudentContext";
 export default function StudentPass() {
   const { student } = useStudent();
   const { data: fees } = useApi(api.myFees, []);
+  const { data: payments } = useApi(api.myPayments, []);
+  const slipAwaitingApproval = (payments ?? []).some((p) => p.kind === "pass" && p.status === "pending");
   const unpaid = (fees ?? []).filter((f) => f.status === "unpaid");
 
   return (
@@ -57,7 +59,7 @@ export default function StudentPass() {
             </div>
           </div>
         ) : (
-          <PassNotReady status={student.passStatus} />
+          <PassNotReady status={student.passStatus} slipSent={slipAwaitingApproval} loading={!payments} />
         )}
       </Card>
 
@@ -80,24 +82,32 @@ function Item({ k, v }: { k: string; v: React.ReactNode }) {
   );
 }
 
-function PassNotReady({ status }: { status: string }) {
+function PassNotReady({ status, slipSent, loading }: { status: string; slipSent: boolean; loading: boolean }) {
   const copy =
-    status === "rejected"
-      ? { title: "Vehicle pass payment rejected", body: "Your payment slip couldn't be verified. Please upload a new slip from Pay Fees." }
-      : status === "expired"
-        ? { title: "Vehicle pass expired", body: "Renew your pass by paying the pass fee from Pay Fees." }
+    status === "rejected" && !slipSent
+      ? { title: "Vehicle pass payment rejected", body: "Your payment slip couldn't be verified." }
+      : status === "expired" && !slipSent
+        ? { title: "Vehicle pass expired", body: "Renew your pass by paying the pass fee." }
         : { title: "Vehicle Pass Pending…", body: "Awaiting Payment Verification" };
 
   return (
     <div className="flex flex-col items-center px-6 py-16 text-center">
       <p className="text-xl italic text-ink-soft">{copy.title}</p>
       <p className="mt-1 text-xl font-semibold text-ink">{copy.body}</p>
-      <p className="mt-6 max-w-sm text-sm text-ink-soft">
-        Upload your vehicle pass payment slip to get your QR pass.
-      </p>
-      <ButtonLink href="/student/pay" variant="coral" className="mt-3">
-        Upload payment slip
-      </ButtonLink>
+      {loading ? null : slipSent ? (
+        <p className="mt-6 max-w-sm text-sm text-ink-soft">
+          Your payment slip has been sent. Your QR pass will appear here as soon as an admin approves it.
+        </p>
+      ) : (
+        <>
+          <p className="mt-6 max-w-sm text-sm text-ink-soft">
+            {status === "rejected" ? "Please upload a new, clear photo of your payment slip." : "Upload your vehicle pass payment slip so an admin can approve your QR pass."}
+          </p>
+          <ButtonLink href="/student/pay" variant="coral" className="mt-3">
+            Upload payment slip
+          </ButtonLink>
+        </>
+      )}
     </div>
   );
 }

@@ -59,7 +59,7 @@ export default function Register() {
       <Card className="w-full max-w-3xl p-6 sm:p-8">
         <h1 className="text-center text-2xl font-extrabold text-ink sm:text-3xl">Student Registration for SLIIT Parking</h1>
         <p className="mt-1 text-center text-sm text-ink-soft">
-          Upload your {money(PRICES.pass)} vehicle pass payment slip to get your QR pass right away, or skip it and upload later.
+          Upload your {money(PRICES.pass)} vehicle pass payment slip, or skip it and upload later. Your QR pass appears once an admin approves the slip.
         </p>
 
         <form onSubmit={submit} className="mt-6 grid gap-4 sm:grid-cols-2 sm:gap-x-6">

@@ -28,6 +28,7 @@ If `NEXT_PUBLIC_API_URL` is **not** set, the app uses built-in sample data (`src
 | Role | Login | Password |
 |---|---|---|
 | Student (active pass) | `IT26123567` | `password123` |
+| Student (slip waiting for admin) | `IT26543867` | `password123` |
 | Student (pending, no slip) | `IT26777001` | `password123` |
 | Enforcer | `EN0106` | `password123` |
 | Admin | `ADMIN01` | `admin123` |
@@ -91,7 +92,7 @@ StudentLookup { student: Student, overdueFees: Fee[] }
 | GET | `/students/me` | — | `Student` |
 | GET | `/students/me/payments` | — | `Payment[]` |
 | GET | `/students/me/fees` | — | `Fee[]` |
-| POST | `/payments` | **multipart**: `kind, amount, feeId?, slip (file)` | `Payment`. If `feeId` is sent, set that fee to `pending`. If `kind` is `pass`, issue the pass right away (see below). |
+| POST | `/payments` | **multipart**: `kind, amount, feeId?, slip (file)` | `Payment` (status `pending`). If `feeId` is sent, set that fee to `pending`. |
 | GET | `/enforcers/me` | — | `Enforcer` |
 | GET | `/students/lookup?q=` | `q` = scanned QR text, IT number, or vehicle number | `StudentLookup` |
 | POST | `/fees` | `{ studentId, amount, reason }` | `Fee` (status `unpaid`, `issuedBy` = the logged-in enforcer) |
@@ -105,10 +106,13 @@ StudentLookup { student: Student, overdueFees: Fee[] }
 
 ### Vehicle pass rules
 
-- **Registered with a payment slip:** issue the pass immediately. Set `passStatus` to `active`, set `passValidUntil` (for example one year from now), and create a `qrToken`. Also create a `pass` payment with status `pending`, so the admin can still check the slip.
-- **Registered without a slip:** set `passStatus` to `pending` with no `qrToken`. The student sees "Vehicle Pass Pending… Awaiting Payment Verification" until they upload a slip through `POST /payments` with `kind: "pass"`. That upload issues the pass the same way.
-- **Admin approves a pass payment:** nothing more is needed, because the pass is already active.
-- **Admin rejects a pass payment:** revoke the pass. Set `passStatus` to `rejected`, and set `qrToken` and `passValidUntil` to `null`, so a fake slip stops working.
+**The QR pass is only issued after an admin approves the payment slip.**
+
+- **Registered with a payment slip:** set `passStatus` to `pending` with no `qrToken`. Create a `pass` payment with status `pending` and the slip's `slipUrl`. It then shows up in the admin's Pending Payments.
+- **Registered without a slip:** set `passStatus` to `pending` with no `qrToken` and no payment. The student uploads a slip later through `POST /payments` with `kind: "pass"`, which creates the same pending payment.
+- **Admin approves a pass payment:** set `passStatus` to `active`, set `passValidUntil` (for example one year from now), and generate a `qrToken`. The QR appears for the student.
+- **Admin rejects a pass payment:** set `passStatus` to `rejected`. The student sees "payment rejected" and can upload a new slip.
+- The student's screen can tell "slip sent, waiting for the admin" apart from "no slip yet", because it checks `/students/me/payments` for a `pass` payment with status `pending`.
 
 ### Enforcer accounts
 

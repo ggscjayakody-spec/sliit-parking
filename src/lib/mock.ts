@@ -33,7 +33,30 @@ interface DB {
   fees: Fee[];
 }
 
-const KEY = "sp_mock_db_v2";
+const KEY = "sp_mock_db_v3";
+
+/** A drawn sample bank slip so the admin's slip preview has something to show in demo mode. */
+const SAMPLE_SLIP =
+  "data:image/svg+xml;utf8," +
+  encodeURIComponent(
+    `<svg xmlns="http://www.w3.org/2000/svg" width="360" height="460" viewBox="0 0 360 460" font-family="Arial, sans-serif">
+      <rect width="360" height="460" fill="#fdfcf7"/>
+      <rect x="0" y="0" width="360" height="64" fill="#1f4e8c"/>
+      <text x="20" y="40" fill="#fff" font-size="20" font-weight="bold">SAMPLE BANK</text>
+      <text x="20" y="100" font-size="15" font-weight="bold" fill="#222">CASH DEPOSIT SLIP</text>
+      <text x="20" y="135" font-size="12" fill="#555">Account name</text>
+      <text x="20" y="153" font-size="14" fill="#111">SLIIT Parking Fund</text>
+      <text x="20" y="185" font-size="12" fill="#555">Reference</text>
+      <text x="20" y="203" font-size="14" fill="#111">IT26543867 - Vehicle Pass</text>
+      <text x="20" y="235" font-size="12" fill="#555">Date</text>
+      <text x="20" y="253" font-size="14" fill="#111">2026-11-03</text>
+      <text x="20" y="285" font-size="12" fill="#555">Amount</text>
+      <text x="20" y="310" font-size="24" font-weight="bold" fill="#111">LKR 1,500.00</text>
+      <circle cx="270" cy="380" r="46" fill="none" stroke="#c0392b" stroke-width="3" opacity=".7"/>
+      <text x="270" y="385" text-anchor="middle" font-size="13" font-weight="bold" fill="#c0392b" opacity=".8">PAID</text>
+      <text x="20" y="440" font-size="10" fill="#999">Demo image - not a real slip</text>
+    </svg>`,
+  );
 
 function seed(): DB {
   return {
@@ -66,9 +89,9 @@ function seed(): DB {
         contact: "0759876543",
         vehicleNumber: "KS-9467",
         vehicleType: "Car",
-        passStatus: "active",
-        passValidUntil: "2027-11-03",
-        qrToken: "SLIITPARK:IT26543867",
+        passStatus: "pending", // uploaded a slip at sign-up; waiting for admin approval
+        passValidUntil: null,
+        qrToken: null,
         password: "password123",
       },
       // Registered without a slip → sees "Vehicle Pass Pending…"
@@ -91,7 +114,7 @@ function seed(): DB {
       { id: "P2", studentId: "IT26123567", kind: "fee", amount: 150, date: "2026-10-12", status: "approved", slipUrl: null },
       { id: "P3", studentId: "IT26123567", kind: "pass", amount: 1500, date: "2026-09-09", status: "approved", slipUrl: null },
       { id: "P4", studentId: "IT26478467", kind: "fee", amount: 250, date: "2026-11-02", status: "pending", slipUrl: null, feeId: "F2" },
-      { id: "P5", studentId: "IT26543867", kind: "pass", amount: 1500, date: "2026-11-03", status: "pending", slipUrl: null },
+      { id: "P5", studentId: "IT26543867", kind: "pass", amount: 1500, date: "2026-11-03", status: "pending", slipUrl: SAMPLE_SLIP },
       { id: "P6", studentId: "IT26478467", kind: "pass", amount: 1500, date: "2026-10-04", status: "approved", slipUrl: null },
       { id: "P7", studentId: "IT26543867", kind: "fee", amount: 250, date: "2026-10-02", status: "rejected", slipUrl: null },
     ],
@@ -119,7 +142,7 @@ function save(db: DB) {
   } catch {}
 }
 
-/** Issue the QR pass straight away. The admin still checks the slip later and can revoke it. */
+/** Issue the QR pass. Only called when an admin approves the pass payment slip. */
 function activatePass(s: Student) {
   const until = new Date();
   until.setFullYear(until.getFullYear() + 1);
@@ -190,8 +213,7 @@ export const mock = {
     };
     db.students.push(student);
     if (input.paymentSlip) {
-      // Slip uploaded → QR pass now; payment waits in the admin's pending list.
-      activatePass(student);
+      // Slip uploaded → waits in the admin's Pending Payments. QR appears only after approval.
       db.payments.push({
         id: uid("P"),
         studentId: id,
@@ -202,7 +224,7 @@ export const mock = {
         slipUrl: await fileToDataUrl(input.paymentSlip),
       });
     }
-    // No slip → passStatus stays "pending" until they upload one from Pay Fees.
+    // Either way passStatus starts "pending". Without a slip they upload one later from Pay Fees.
     save(db);
     return delay({ ok: true as const });
   },
@@ -256,7 +278,7 @@ export const mock = {
     }
     if (input.kind === "pass") {
       const s = db.students.find((x) => x.id === id);
-      if (s && s.passStatus !== "active") activatePass(s);
+      if (s && s.passStatus !== "active") s.passStatus = "pending"; // admin must approve first
     }
     save(db);
     return delay(p);
@@ -361,8 +383,8 @@ export const mock = {
       if (s) {
         if (status === "approved") {
           if (s.passStatus !== "active") activatePass(s);
-        } else {
-          revokePass(s); // fake or wrong slip → QR stops working
+        } else if (s.passStatus !== "active") {
+          revokePass(s); // slip refused → student must upload a new one
         }
       }
     }

@@ -14,6 +14,8 @@ export default function PayFees() {
   const router = useRouter();
   const { student, reload: reloadStudent } = useStudent();
   const { data: fees, loading, error } = useApi(api.myFees, []);
+  const { data: payments } = useApi(api.myPayments, []);
+  const passSlipPending = (payments ?? []).some((p) => p.kind === "pass" && p.status === "pending");
   const [selected, setSelected] = useState<string | null>(null);
   const [slip, setSlip] = useState<File | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -23,11 +25,11 @@ export default function PayFees() {
     const list: Choice[] = (fees ?? [])
       .filter((f: Fee) => f.status === "unpaid")
       .map((f) => ({ key: f.id, label: f.reason, detail: `${f.date} · ${f.vehicleNumber}`, amount: f.amount, kind: "fee", feeId: f.id }));
-    if (student.passStatus !== "active") {
+    if (student.passStatus !== "active" && payments && !passSlipPending) {
       list.unshift({ key: "pass", label: "Vehicle pass fee", detail: "Valid for 1 year", amount: PRICES.pass, kind: "pass" });
     }
     return list;
-  }, [fees, student.passStatus]);
+  }, [fees, student.passStatus, payments, passSlipPending]);
 
   const current = choices.find((c) => c.key === selected) ?? null;
   const others = (fees ?? []).filter((f) => f.status !== "unpaid");

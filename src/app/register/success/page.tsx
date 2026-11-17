@@ -25,7 +25,7 @@ function RegisterSuccess() {
         <h1 className="mt-5 text-3xl font-extrabold text-ink">Successfully Registered!</h1>
         <p className="mt-2 text-ink-soft">
           {withSlip
-            ? "Your QR vehicle pass is ready. Please log in below to see it."
+            ? "Your payment slip has been sent for approval. Your QR vehicle pass will appear once an admin approves it. Please log in below."
             : "You didn't upload a payment slip, so your vehicle pass is pending. Log in and upload it from Pay Fees to get your QR pass."}
         </p>
         <ButtonLink href="/login" variant="primary" className="mt-6 min-w-36">
