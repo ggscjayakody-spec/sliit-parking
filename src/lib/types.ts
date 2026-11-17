@@ -49,6 +49,12 @@ export interface Enforcer {
   fullName: string;
 }
 
+export interface NewEnforcerInput {
+  id: string;
+  fullName: string;
+  password: string;
+}
+
 export interface Admin {
   id: string;
   fullName: string;

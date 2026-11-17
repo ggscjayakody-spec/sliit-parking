@@ -16,6 +16,7 @@ import type {
   Fee,
   FeeStatus,
   LoginResult,
+  NewEnforcerInput,
   Payment,
   PaymentKind,
   PaymentStatus,
@@ -134,6 +135,12 @@ export const api = {
     USING_MOCK
       ? mock.reviewPayment(id, status)
       : request<Payment>(`/admin/payments/${encodeURIComponent(id)}`, { method: "PATCH", body: json({ status }) }),
+
+  /** Enforcer accounts can only be created here, by an admin. There is no enforcer sign-up. */
+  adminEnforcers: () => (USING_MOCK ? mock.adminEnforcers() : request<Enforcer[]>("/admin/enforcers")),
+
+  createEnforcer: (input: NewEnforcerInput) =>
+    USING_MOCK ? mock.createEnforcer(input) : request<Enforcer>("/admin/enforcers", { method: "POST", body: json(input) }),
 
   adminStudent: (id: string) =>
     USING_MOCK ? mock.lookupStudent(id) : request<StudentLookup>(`/admin/students/${encodeURIComponent(id)}`),

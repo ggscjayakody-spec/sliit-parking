@@ -11,6 +11,7 @@ const NAV = [
   { href: "/admin", label: "Pending Payments" },
   { href: "/admin/history", label: "Payment History" },
   { href: "/admin/students", label: "Student Details" },
+  { href: "/admin/enforcers", label: "Enforcers" },
 ];
 
 export default function AdminLayout({ children }: { children: ReactNode }) {

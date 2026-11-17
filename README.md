@@ -8,7 +8,7 @@ There are three portals, based on the team's Canva board:
 |---|---|---|---|
 | Student | `/`, `/login`, `/register`, `/student/*` | Students | Register a vehicle with a payment slip, see the QR vehicle pass, pay fees by uploading a slip, see payment history |
 | Enforcer | `/enforcer/*` (phone layout) | Parking enforcers | Scan a pass QR (or search by ID or vehicle number), see student details, add fees, view the fees they issued |
-| Admin | `/admin/*` | Parking office | Approve or reject pending slips (passes and fees), see payment history, look up students |
+| Admin | `/admin/*` | Parking office | Approve or reject pending slips (passes and fees), see payment history, look up students, create enforcer accounts |
 
 ---
 
@@ -100,6 +100,8 @@ StudentLookup { student: Student, overdueFees: Fee[] }
 | GET | `/admin/payments?status=&kind=&studentId=` | all optional | `Payment[]` |
 | PATCH | `/admin/payments/:id` | `{ status: "approved" \| "rejected" }` | `Payment` |
 | GET | `/admin/students/:idOrVehicle` | — | `StudentLookup` |
+| GET | `/admin/enforcers` | — | `Enforcer[]` |
+| POST | `/admin/enforcers` | `{ id, fullName, password }` | `Enforcer`. Return `409` if the ID is taken. **Admin token only.** |
 
 ### Vehicle pass rules
 
@@ -107,6 +109,10 @@ StudentLookup { student: Student, overdueFees: Fee[] }
 - **Registered without a slip:** set `passStatus` to `pending` with no `qrToken`. The student sees "Vehicle Pass Pending… Awaiting Payment Verification" until they upload a slip through `POST /payments` with `kind: "pass"`. That upload issues the pass the same way.
 - **Admin approves a pass payment:** nothing more is needed, because the pass is already active.
 - **Admin rejects a pass payment:** revoke the pass. Set `passStatus` to `rejected`, and set `qrToken` and `passValidUntil` to `null`, so a fake slip stops working.
+
+### Enforcer accounts
+
+Only an admin can create enforcer accounts, through `POST /admin/enforcers` from the admin portal's **Enforcers** page. There is **no** enforcer sign-up endpoint, so the backend must reject that route for anyone who isn't logged in as an admin. Enforcer IDs look like `EN0107`.
 
 ### Fee rules
 

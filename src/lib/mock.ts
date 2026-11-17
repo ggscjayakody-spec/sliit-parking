@@ -16,6 +16,7 @@ import type {
   Fee,
   FeeStatus,
   LoginResult,
+  NewEnforcerInput,
   Payment,
   PaymentKind,
   PaymentStatus,
@@ -305,6 +306,22 @@ export const mock = {
         .fees.filter((f) => f.issuedBy === enforcerId && (!status || f.status === status))
         .sort((a, b) => b.date.localeCompare(a.date)),
     );
+  },
+
+  async adminEnforcers(): Promise<Enforcer[]> {
+    whoAmI("admin");
+    return delay(load().enforcers.map(strip).sort((a, b) => a.id.localeCompare(b.id)));
+  },
+
+  async createEnforcer(input: NewEnforcerInput): Promise<Enforcer> {
+    whoAmI("admin");
+    const db = load();
+    const id = input.id.trim().toUpperCase();
+    if (db.enforcers.some((e) => e.id === id)) throw new ApiError(`Enforcer ID ${id} is already taken.`, 409);
+    const e = { id, fullName: input.fullName.trim(), password: input.password };
+    db.enforcers.push(e);
+    save(db);
+    return delay(strip(e));
   },
 
   async adminMe(): Promise<Admin> {
