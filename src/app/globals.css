@@ -1,26 +1,93 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+@theme {
+  --font-sans: "Source Sans 3 Variable", ui-sans-serif, system-ui, sans-serif;
+
+  --color-ink: #1f1b5c;          /* navy headings, from the Canva board */
+  --color-ink-soft: #4b4785;
+  --color-lilac-50: #f5f3ff;
+  --color-lilac-100: #ece8ff;
+  --color-lilac-200: #dcd5fb;
+  --color-lilac-300: #c3b8f3;
+  --color-coral: #ec5b6c;        /* Pay Fees / Add Fees */
+  --color-coral-dark: #c93a4c;
+  --color-ok: #2f9e6b;
+  --color-warn: #d98a1c;
+  --color-bad: #d6455a;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html,
+body {
+  min-height: 100%;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  background-color: #eef0ff;
+}
+
+/* Pastel gradient backdrop used on every screen in the design */
+.bg-mesh {
+  background:
+    radial-gradient(60% 70% at 0% 100%, #b98cf5 0%, transparent 60%),
+    radial-gradient(55% 60% at 10% 0%, #f8c8ef 0%, transparent 65%),
+    radial-gradient(60% 70% at 100% 10%, #6fb3ff 0%, transparent 60%),
+    radial-gradient(50% 60% at 100% 100%, #cfe9ff 0%, transparent 70%),
+    linear-gradient(135deg, #f6e8ff 0%, #e8ecff 50%, #dff1ff 100%);
+}
+
+.bg-mesh-coral {
+  background:
+    radial-gradient(60% 70% at 0% 100%, #f39aa6 0%, transparent 60%),
+    radial-gradient(60% 70% at 100% 0%, #ff8f9c 0%, transparent 60%),
+    linear-gradient(135deg, #f37a88 0%, #ec5b6c 100%);
+}
+
+@layer components {
+.glass {
+  background: rgb(255 255 255 / 0.62);
+  border: 1px solid rgb(255 255 255 / 0.8);
+  box-shadow:
+    0 1px 0 rgb(255 255 255 / 0.6) inset,
+    0 18px 40px -18px rgb(60 40 140 / 0.35);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+.field {
+  width: 100%;
+  border-radius: 0.6rem;
+  border: 1px solid var(--color-lilac-300);
+  background: rgb(255 255 255 / 0.75);
+  padding: 0.6rem 0.8rem;
+  font-size: 1rem; /* 16px stops iOS zoom on focus */
+  color: var(--color-ink);
+  outline: none;
+  transition: border-color 150ms, box-shadow 150ms;
+}
+.field:focus {
+  border-color: #8b7cf0;
+  box-shadow: 0 0 0 3px rgb(139 124 240 / 0.22);
+}
+.field::placeholder {
+  color: #9a97c2;
+}
+
+}
+
+@media (hover: hover) {
+  .lift:hover {
+    transform: translateY(-1px);
+  }
+}
+.lift {
+  transition: transform 150ms ease-out, background-color 150ms, box-shadow 150ms;
+}
+.lift:active {
+  transform: scale(0.98);
+}
+
+html {
+  -webkit-tap-highlight-color: transparent;
 }
