@@ -12,7 +12,10 @@ import { ApiError } from "./errors";
 import { getSession } from "./session";
 import type {
   Admin,
+  ActivityAction,
   Enforcer,
+  EnforcerActivity,
+  EnforcerSummary,
   Fee,
   FeeStatus,
   LoginResult,
@@ -32,9 +35,10 @@ interface DB {
   admins: (Admin & { password: string })[];
   payments: Payment[];
   fees: Fee[];
+  activity: { id: string; enforcerId: string; action: ActivityAction; query: string | null; studentId: string | null; feeId: string | null; at: string }[];
 }
 
-const KEY = "sp_mock_db_v5";
+const KEY = "sp_mock_db_v6";
 
 /** A drawn sample bank slip so the admin's slip preview has something to show in demo mode. */
 const SAMPLE_SLIP =
@@ -138,6 +142,18 @@ function seed(): DB {
       { id: "F4", studentId: "IT26543867", vehicleNumber: "KS-9467", hours: 2, amount: 100, date: "2026-11-14", status: "unpaid", issuedBy: "EN0106" },
       { id: "F5", studentId: "IT26112233", vehicleNumber: "CAR-2211", hours: 4, amount: 200, date: "2026-11-15", status: "unpaid", issuedBy: "EN0106" },
     ],
+    activity: [
+      { id: "A1", enforcerId: "EN0106", action: "scan", query: null, studentId: "IT26543867", feeId: null, at: "2026-11-04 09:12" },
+      { id: "A2", enforcerId: "EN0106", action: "fee", query: null, studentId: "IT26543867", feeId: "F1", at: "2026-11-04 09:14" },
+      { id: "A3", enforcerId: "EN0106", action: "scan", query: null, studentId: "IT26112233", feeId: null, at: "2026-11-08 13:40" },
+      { id: "A4", enforcerId: "EN0106", action: "fee", query: null, studentId: "IT26112233", feeId: "F2", at: "2026-11-08 13:41" },
+      { id: "A5", enforcerId: "EN0106", action: "search", query: "WP-4521", studentId: "IT26777001", feeId: null, at: "2026-11-12 10:05" },
+      { id: "A6", enforcerId: "EN0106", action: "fee", query: null, studentId: "IT26777001", feeId: "F3", at: "2026-11-12 10:06" },
+      { id: "A7", enforcerId: "EN0106", action: "scan", query: null, studentId: "IT26123567", feeId: null, at: "2026-11-13 08:55" },
+      { id: "A8", enforcerId: "EN0106", action: "fee", query: null, studentId: "IT26543867", feeId: "F4", at: "2026-11-14 11:30" },
+      { id: "A9", enforcerId: "EN0106", action: "search", query: "ABC-0000", studentId: null, feeId: null, at: "2026-11-15 07:50" },
+      { id: "A10", enforcerId: "EN0106", action: "fee", query: null, studentId: "IT26112233", feeId: "F5", at: "2026-11-15 16:20" },
+    ],
   };
 }
 
@@ -185,6 +201,10 @@ function revokePass(s: Student) {
 
 const delay = <T,>(v: T, ms = 350) => new Promise<T>((r) => setTimeout(() => r(v), ms));
 const today = () => new Date().toISOString().slice(0, 10);
+const nowStamp = () => {
+  const d = new Date();
+  return `${today()} ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+};
 const uid = (p: string) => `${p}${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
 const strip = <T extends { password: string }>(row: T): Omit<T, "password"> => {
   const copy: Partial<T> = { ...row };
@@ -317,9 +337,14 @@ export const mock = {
     return delay(strip(e));
   },
 
-  async lookupStudent(q: string): Promise<StudentLookup> {
+  async lookupStudent(q: string, via?: "scan" | "search"): Promise<StudentLookup> {
     const db = load();
     const s = findStudent(db, q);
+    const me = getSession();
+    if (via && me?.role === "enforcer") {
+      db.activity.push({ id: uid("A"), enforcerId: me.userId, action: via, query: q, studentId: s?.id ?? null, feeId: null, at: nowStamp() });
+      save(db);
+    }
     if (!s) throw new ApiError("No student found for that QR, ID or vehicle number.", 404);
     return delay({
       student: publicStudent(s),
@@ -344,6 +369,7 @@ export const mock = {
       issuedBy: enforcerId,
     };
     db.fees.push(fee);
+    db.activity.push({ id: uid("A"), enforcerId, action: "fee", query: null, studentId: s.id, feeId: fee.id, at: nowStamp() });
     save(db);
     return delay(fee);
   },
@@ -357,9 +383,55 @@ export const mock = {
     );
   },
 
-  async adminEnforcers(): Promise<Enforcer[]> {
+  async adminEnforcers(): Promise<EnforcerSummary[]> {
     whoAmI("admin");
-    return delay(load().enforcers.map(strip).sort((a, b) => a.id.localeCompare(b.id)));
+    const db = load();
+    return delay(
+      db.enforcers
+        .map((e) => {
+          const fees = db.fees.filter((f) => f.issuedBy === e.id);
+          const acts = db.activity.filter((a) => a.enforcerId === e.id).map((a) => a.at).sort();
+          return { ...strip(e), feesIssued: fees.length, feeTotal: fees.reduce((t, f) => t + f.amount, 0), lastActive: acts.at(-1) ?? null };
+        })
+        .sort((a, b) => a.id.localeCompare(b.id)),
+    );
+  },
+
+  async enforcerActivity(id: string): Promise<EnforcerActivity> {
+    whoAmI("admin");
+    const db = load();
+    const e = db.enforcers.find((x) => x.id === id);
+    if (!e) throw new ApiError("Enforcer not found.", 404);
+    const acts = db.activity.filter((a) => a.enforcerId === id).sort((a, b) => b.at.localeCompare(a.at));
+    const items = acts.map((a) => {
+      const s = a.studentId ? db.students.find((x) => x.id === a.studentId) : undefined;
+      const f = a.feeId ? db.fees.find((x) => x.id === a.feeId) : undefined;
+      return {
+        id: a.id,
+        action: a.action,
+        at: a.at,
+        query: a.query,
+        studentId: s?.id ?? null,
+        studentName: s?.fullName ?? null,
+        vehicleNumber: s?.vehicleNumber ?? null,
+        amount: f?.amount ?? null,
+        hours: f?.hours ?? null,
+        feeStatus: f?.status ?? null,
+      };
+    });
+    const fees = items.filter((i) => i.action === "fee");
+    return delay({
+      enforcer: { id: e.id, fullName: e.fullName, createdAt: "2026-09-01" },
+      summary: {
+        scans: items.filter((i) => i.action === "scan").length,
+        searches: items.filter((i) => i.action === "search").length,
+        fees: fees.length,
+        feeTotal: fees.reduce((t, i) => t + (i.amount ?? 0), 0),
+        today: items.filter((i) => i.at.startsWith(today())).length,
+        lastActive: items[0]?.at ?? null,
+      },
+      items,
+    });
   },
 
   async createEnforcer(input: NewEnforcerInput): Promise<Enforcer> {

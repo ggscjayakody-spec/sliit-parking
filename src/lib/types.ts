@@ -54,6 +54,34 @@ export interface Enforcer {
   fullName: string;
 }
 
+/** One row in the admin's Enforcers list. */
+export interface EnforcerSummary extends Enforcer {
+  feesIssued: number;
+  feeTotal: number;
+  lastActive: string | null;
+}
+
+export type ActivityAction = "scan" | "search" | "fee";
+
+export interface ActivityItem {
+  id: string;
+  action: ActivityAction;
+  at: string; // "YYYY-MM-DD HH:MM" Sri Lanka time
+  query: string | null; // what was scanned / typed
+  studentId: string | null; // null = no student matched
+  studentName: string | null;
+  vehicleNumber: string | null;
+  amount: number | null; // for "fee"
+  hours: number | null; // for "fee"
+  feeStatus: FeeStatus | null;
+}
+
+export interface EnforcerActivity {
+  enforcer: Enforcer & { createdAt: string };
+  summary: { scans: number; searches: number; fees: number; feeTotal: number; today: number; lastActive: string | null };
+  items: ActivityItem[];
+}
+
 export interface NewFeeInput {
   studentId: string;
   hours: number;

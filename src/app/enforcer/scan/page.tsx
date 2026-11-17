@@ -8,11 +8,12 @@ import { BackLink, Card, SearchInput } from "@/components/ui";
 export default function Scan() {
   const router = useRouter();
   const [q, setQ] = useState("");
-  const go = (text: string) => router.push(`/enforcer/student?q=${encodeURIComponent(text)}`);
+  const go = (text: string, via: "scan" | "search" = "scan") =>
+    router.push(`/enforcer/student?q=${encodeURIComponent(text)}&via=${via}`);
 
   function search(e: FormEvent) {
     e.preventDefault();
-    if (q.trim()) go(q.trim());
+    if (q.trim()) go(q.trim(), "search");
   }
 
   return (

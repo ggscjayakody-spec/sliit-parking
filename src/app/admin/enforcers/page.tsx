@@ -1,10 +1,11 @@
 "use client";
 
+import Link from "next/link";
 import { useState, type FormEvent } from "react";
 import { api } from "@/lib/api";
 import { errorMessage, useApi } from "@/lib/hooks";
 import type { Enforcer } from "@/lib/types";
-import { Avatar, Button, Card, Empty, ErrorText, Field, Loading, SearchInput } from "@/components/ui";
+import { Avatar, Button, Card, Empty, ErrorText, Field, Loading, money, SearchInput } from "@/components/ui";
 
 /** Suggest the next free ID, e.g. EN0106 → EN0107. */
 function nextId(list: Enforcer[] | null) {
@@ -68,12 +69,21 @@ export default function Enforcers() {
             <Empty>{data?.length ? "No enforcers match." : "No enforcer accounts yet."}</Empty>
           ) : (
             rows.map((e) => (
-              <li key={e.id} className="flex items-center gap-3 rounded-xl border border-white/80 bg-white/70 px-4 py-3">
-                <Avatar name={e.fullName} />
-                <div className="min-w-0">
-                  <p className="truncate font-bold">{e.fullName}</p>
-                  <p className="text-sm text-ink-soft">{e.id}</p>
-                </div>
+              <li key={e.id}>
+                <Link
+                  href={`/admin/enforcers/activity?id=${encodeURIComponent(e.id)}`}
+                  className="flex items-center gap-3 rounded-xl border border-white/80 bg-white/70 px-4 py-3 transition-colors hover:bg-white"
+                >
+                  <Avatar name={e.fullName} />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate font-bold">{e.fullName}</p>
+                    <p className="text-sm text-ink-soft">
+                      {e.id} · {e.feesIssued} fee{e.feesIssued === 1 ? "" : "s"} issued ({money(e.feeTotal)})
+                    </p>
+                    <p className="text-xs text-ink-soft/80">{e.lastActive ? `Last active ${e.lastActive.slice(0, 16)}` : "No activity yet"}</p>
+                  </div>
+                  <span className="shrink-0 text-sm font-bold text-[#5b4fd6]">Activity ›</span>
+                </Link>
               </li>
             ))
           )}

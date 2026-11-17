@@ -1,18 +1,21 @@
 /**
  * Every call to the backend goes through this file.
  *
- * - If NEXT_PUBLIC_API_URL is set, requests go to the real backend.
- * - If it is NOT set, a built-in mock (src/lib/mock.ts) answers instead, so the
- *   whole UI can be demoed before the backend is ready.
- *
- * When the backend teammate changes an endpoint, only this file needs editing.
+ * Three modes:
+ *  - Default: the backend built into this app (src/app/api → src/server), at /api.
+ *  - NEXT_PUBLIC_API_URL=https://…  → a separate backend at that address instead.
+ *  - NEXT_PUBLIC_DEMO_MODE=1        → no backend at all: sample data kept in the browser
+ *                                     (src/lib/mock.ts). Handy for working offline.
  */
 import { getSession } from "./session";
 import { mock } from "./mock";
 import { ApiError } from "./errors";
+import { shrinkImage } from "./image";
 import type {
   Admin,
   Enforcer,
+  EnforcerActivity,
+  EnforcerSummary,
   Fee,
   FeeStatus,
   LoginResult,
@@ -26,8 +29,8 @@ import type {
   StudentLookup,
 } from "./types";
 
-const BASE = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "");
-export const USING_MOCK = BASE === "";
+export const USING_MOCK = process.env.NEXT_PUBLIC_DEMO_MODE === "1";
+const BASE = (process.env.NEXT_PUBLIC_API_URL || "/api").replace(/\/$/, "");
 
 export { ApiError };
 
@@ -71,7 +74,7 @@ export const api = {
       ? mock.studentLogin(id, password)
       : request<LoginResult>("/auth/student/login", { method: "POST", body: json({ id, password }) }),
 
-  studentRegister: (input: RegisterInput) => {
+  studentRegister: async (input: RegisterInput) => {
     if (USING_MOCK) return mock.studentRegister(input);
     const fd = new FormData();
     fd.set("id", input.id);
@@ -80,7 +83,7 @@ export const api = {
     fd.set("vehicleNumber", input.vehicleNumber);
     fd.set("vehicleType", input.vehicleType);
     fd.set("password", input.password);
-    if (input.paymentSlip) fd.set("paymentSlip", input.paymentSlip);
+    if (input.paymentSlip) fd.set("paymentSlip", await shrinkImage(input.paymentSlip));
     return request<{ ok: true }>("/auth/student/register", { method: "POST", body: fd });
   },
 
@@ -102,22 +105,23 @@ export const api = {
 
   myFees: () => (USING_MOCK ? mock.myFees() : request<Fee[]>("/students/me/fees")),
 
-  submitPayment: (input: { kind: PaymentKind; amount: number; feeId?: string; slip: File }) => {
+  submitPayment: async (input: { kind: PaymentKind; amount: number; feeId?: string; slip: File }) => {
     if (USING_MOCK) return mock.submitPayment(input);
     const fd = new FormData();
     fd.set("kind", input.kind);
     fd.set("amount", String(input.amount));
     if (input.feeId) fd.set("feeId", input.feeId);
-    fd.set("slip", input.slip);
+    fd.set("slip", await shrinkImage(input.slip));
     return request<Payment>("/payments", { method: "POST", body: fd });
   },
 
   // ───────── Enforcer ─────────
   enforcerMe: () => (USING_MOCK ? mock.enforcerMe() : request<Enforcer>("/enforcers/me")),
 
-  /** q = scanned QR text, IT number, or vehicle number */
-  lookupStudent: (q: string) =>
-    USING_MOCK ? mock.lookupStudent(q) : request<StudentLookup>(`/students/lookup${qs({ q })}`),
+  /** q = scanned QR text, IT number, or vehicle number.
+   *  `via` records the lookup in the enforcer's activity: "scan" (QR) or "search" (typed). */
+  lookupStudent: (q: string, via?: "scan" | "search") =>
+    USING_MOCK ? mock.lookupStudent(q, via) : request<StudentLookup>(`/students/lookup${qs({ q, via })}`),
 
   issueFee: (input: NewFeeInput) =>
     USING_MOCK ? mock.issueFee(input) : request<Fee>("/fees", { method: "POST", body: json(input) }),
@@ -139,7 +143,10 @@ export const api = {
       : request<Payment>(`/admin/payments/${encodeURIComponent(id)}`, { method: "PATCH", body: json({ status }) }),
 
   /** Enforcer accounts can only be created here, by an admin. There is no enforcer sign-up. */
-  adminEnforcers: () => (USING_MOCK ? mock.adminEnforcers() : request<Enforcer[]>("/admin/enforcers")),
+  adminEnforcers: () => (USING_MOCK ? mock.adminEnforcers() : request<EnforcerSummary[]>("/admin/enforcers")),
+
+  enforcerActivity: (id: string) =>
+    USING_MOCK ? mock.enforcerActivity(id) : request<EnforcerActivity>(`/admin/enforcers/${encodeURIComponent(id)}/activity`),
 
   createEnforcer: (input: NewEnforcerInput) =>
     USING_MOCK ? mock.createEnforcer(input) : request<Enforcer>("/admin/enforcers", { method: "POST", body: json(input) }),

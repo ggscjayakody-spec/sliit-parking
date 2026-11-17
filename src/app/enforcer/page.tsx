@@ -11,7 +11,7 @@ export default function EnforcerHome() {
 
   function search(e: FormEvent) {
     e.preventDefault();
-    if (q.trim()) router.push(`/enforcer/student?q=${encodeURIComponent(q.trim())}`);
+    if (q.trim()) router.push(`/enforcer/student?q=${encodeURIComponent(q.trim())}&via=search`);
   }
 
   return (

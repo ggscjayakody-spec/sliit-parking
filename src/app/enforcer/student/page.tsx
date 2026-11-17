@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { Suspense, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { api } from "@/lib/api";
 import { useApi } from "@/lib/hooks";
@@ -19,8 +19,20 @@ export default function StudentResultPage() {
 
 /** Scan result: student details, then "Add Fees" opens the red form right here, as in the design. */
 function StudentResult() {
-  const q = useSearchParams().get("q") ?? "";
-  const { data, error, loading, reload } = useApi(() => api.lookupStudent(q), [q], !!q);
+  const params = useSearchParams();
+  const q = params.get("q") ?? "";
+  const viaParam = params.get("via");
+  // Record the scan/search in the enforcer's activity once, not again when the page refreshes its data.
+  const via = useRef<"scan" | "search" | undefined>(viaParam === "scan" || viaParam === "search" ? viaParam : undefined);
+  const { data, error, loading, reload } = useApi(
+    () => {
+      const v = via.current;
+      via.current = undefined;
+      return api.lookupStudent(q, v);
+    },
+    [q],
+    !!q,
+  );
   const [adding, setAdding] = useState(false);
   const [added, setAdded] = useState<Fee | null>(null);
 

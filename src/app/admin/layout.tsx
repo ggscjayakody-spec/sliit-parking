@@ -49,7 +49,7 @@ function Shell({ children, pathname }: { children: ReactNode; pathname: string }
                 href={n.href}
                 className={cx(
                   "whitespace-nowrap rounded-lg px-3 py-2 text-sm font-semibold transition-colors",
-                  pathname === n.href ? "bg-white text-ink shadow-sm" : "text-ink-soft hover:bg-white/50 hover:text-ink",
+                  (n.href === "/admin" ? pathname === n.href : pathname.startsWith(n.href)) ? "bg-white text-ink shadow-sm" : "text-ink-soft hover:bg-white/50 hover:text-ink",
                 )}
               >
                 {n.label}
