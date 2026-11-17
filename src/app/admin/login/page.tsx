@@ -8,10 +8,8 @@ export default function AdminLogin() {
     <LoginForm
       role="admin"
       portal="Admin Portal"
-      idLabel="Admin ID"
-      idPlaceholder="ADMIN01"
-      demo={{ id: "ADMIN01", password: "admin123" }}
-      onLogin={api.adminLogin}
+      demo={{ password: "admin123" }}
+      onLogin={(_id, password) => api.adminLogin(password)}
       redirectTo="/admin"
     />
   );

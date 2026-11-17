@@ -17,6 +17,7 @@ import type {
   FeeStatus,
   LoginResult,
   NewEnforcerInput,
+  NewFeeInput,
   Payment,
   PaymentKind,
   PaymentStatus,
@@ -88,10 +89,11 @@ export const api = {
       ? mock.enforcerLogin(id, password)
       : request<LoginResult>("/auth/enforcer/login", { method: "POST", body: json({ id, password }) }),
 
-  adminLogin: (id: string, password: string) =>
+  /** Admin login is password only, as in the design. */
+  adminLogin: (password: string) =>
     USING_MOCK
-      ? mock.adminLogin(id, password)
-      : request<LoginResult>("/auth/admin/login", { method: "POST", body: json({ id, password }) }),
+      ? mock.adminLogin(password)
+      : request<LoginResult>("/auth/admin/login", { method: "POST", body: json({ password }) }),
 
   // ───────── Student ─────────
   me: () => (USING_MOCK ? mock.me() : request<Student>("/students/me")),
@@ -117,7 +119,7 @@ export const api = {
   lookupStudent: (q: string) =>
     USING_MOCK ? mock.lookupStudent(q) : request<StudentLookup>(`/students/lookup${qs({ q })}`),
 
-  issueFee: (input: { studentId: string; amount: number; reason: string }) =>
+  issueFee: (input: NewFeeInput) =>
     USING_MOCK ? mock.issueFee(input) : request<Fee>("/fees", { method: "POST", body: json(input) }),
 
   issuedFees: (status?: FeeStatus) =>

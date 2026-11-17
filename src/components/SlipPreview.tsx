@@ -15,7 +15,7 @@ export function SlipPreview({ url }: { url: string | null }) {
   return isImage ? (
     <a href={url} target="_blank" rel="noreferrer" className="block overflow-hidden rounded-xl border border-lilac-200 bg-white">
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={url} alt="Uploaded payment slip" className="max-h-[32rem] w-full object-contain" />
+      <img src={url} alt="Uploaded payment slip" className="max-h-[26rem] w-full object-contain" />
     </a>
   ) : (
     <a href={url} target="_blank" rel="noreferrer" className="font-bold text-[#5b4fd6] underline underline-offset-4">

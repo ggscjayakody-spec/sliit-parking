@@ -21,9 +21,10 @@ export function LoginForm({
 }: {
   role: Role;
   portal?: string;
-  idLabel: string;
-  idPlaceholder: string;
-  demo: { id: string; password: string };
+  /** Leave out for a password-only login (the admin portal). */
+  idLabel?: string;
+  idPlaceholder?: string;
+  demo: { id?: string; password: string };
   onLogin: (id: string, password: string) => Promise<LoginResult>;
   redirectTo: string;
   footer?: React.ReactNode;
@@ -60,15 +61,17 @@ export function LoginForm({
 
         <Card className="mt-6 p-6">
           <form onSubmit={submit} className="space-y-4">
-            <Field
-              label={idLabel}
-              placeholder={idPlaceholder}
-              value={id}
-              onChange={(e) => setId(e.target.value)}
-              autoComplete="username"
-              autoCapitalize="characters"
-              required
-            />
+            {idLabel && (
+              <Field
+                label={idLabel}
+                placeholder={idPlaceholder}
+                value={id}
+                onChange={(e) => setId(e.target.value)}
+                autoComplete="username"
+                autoCapitalize="characters"
+                required
+              />
+            )}
             <Field
               label="Password"
               type="password"
@@ -89,12 +92,12 @@ export function LoginForm({
           <button
             type="button"
             onClick={() => {
-              setId(demo.id);
+              setId(demo.id ?? "");
               setPassword(demo.password);
             }}
             className="mx-auto mt-4 block text-xs font-semibold text-ink-soft underline decoration-dotted underline-offset-4 hover:text-ink"
           >
-            Fill demo login ({demo.id} / {demo.password})
+            Fill demo login ({demo.id ? `${demo.id} / ` : "password: "}{demo.password})
           </button>
         )}
       </div>

@@ -12,17 +12,24 @@ import { money, StatusBadge } from "./ui";
 export function PaymentRow({
   payment: p,
   showStudent,
+  showKind = showStudent,
   actions,
   onClick,
   selected,
 }: {
   payment: Payment;
   showStudent?: boolean;
+  /** Show the "Fees / Pass" column. The student's own history (as in the design) leaves it out. */
+  showKind?: boolean;
   actions?: ReactNode;
   onClick?: () => void;
   selected?: boolean;
 }) {
   const Tag = onClick ? "button" : "div";
+  const kind = p.kind === "pass" ? "Pass" : "Fees";
+  const wideCols = showKind
+    ? "@xl:grid-cols-[minmax(0,1.2fr)_minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1.2fr)_auto]"
+    : "@xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_auto]";
   const slip = p.slipUrl ? (
     <a
       href={p.slipUrl}
@@ -41,22 +48,25 @@ export function PaymentRow({
     <div className="@container">
       <Tag
         onClick={onClick}
-        className={`grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-1 rounded-xl border bg-white/70 px-4 py-3 text-left text-sm @xl:grid-cols-[minmax(0,1.2fr)_minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1.2fr)_auto] ${
+        className={`grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-1 rounded-xl border bg-white/70 px-4 py-3 text-left text-sm ${wideCols} ${
           selected ? "border-[#8b7cf0] ring-2 ring-[#8b7cf0]/25" : "border-white/80"
         } ${onClick ? "transition-colors hover:bg-white" : ""}`}
       >
         {/* Narrow: two lines — "250/=  [Approved]" / "2026-11-04 · Fees   View Upload" */}
         <span className="truncate font-bold">{showStudent ? p.studentId : money(p.amount)}</span>
         <span className="hidden truncate text-ink-soft @xl:block">{p.date}</span>
-        <span className="hidden truncate text-ink-soft @xl:block">
-          {p.kind === "pass" ? "Pass" : "Fees"}
-          {showStudent && ` · ${money(p.amount)}`}
-        </span>
+        {showKind && (
+          <span className="hidden truncate text-ink-soft @xl:block">
+            {kind}
+            {showStudent && ` · ${money(p.amount)}`}
+          </span>
+        )}
         <span className="hidden @xl:block">{slip}</span>
         <span className="flex items-center justify-end gap-2">{actions ?? <StatusBadge status={p.status} />}</span>
 
         <span className="truncate text-ink-soft @xl:hidden">
-          {p.date} · {p.kind === "pass" ? "Pass" : "Fees"}
+          {p.date}
+          {showKind && ` · ${kind}`}
           {showStudent && ` · ${money(p.amount)}`}
         </span>
         <span className="text-right @xl:hidden">{slip}</span>

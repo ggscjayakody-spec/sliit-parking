@@ -8,7 +8,7 @@ There are three portals, based on the team's Canva board:
 |---|---|---|---|
 | Student | `/`, `/login`, `/register`, `/student/*` | Students | Register a vehicle with a payment slip, see the QR vehicle pass, pay fees by uploading a slip, see payment history |
 | Enforcer | `/enforcer/*` (phone layout) | Parking enforcers | Scan a pass QR (or search by ID or vehicle number), see student details, add fees, view the fees they issued |
-| Admin | `/admin/*` | Parking office | Approve or reject pending slips (passes and fees), see payment history, look up students, create enforcer accounts |
+| Admin | `/admin/*` | Parking office | One home screen with Pending Payments (approve or reject slips) and Student Details (search by ID or vehicle), plus Payment History and creating enforcer accounts |
 
 ---
 
@@ -31,7 +31,7 @@ If `NEXT_PUBLIC_API_URL` is **not** set, the app uses built-in sample data (`src
 | Student (slip waiting for admin) | `IT26543867` | `password123` |
 | Student (pending, no slip) | `IT26777001` | `password123` |
 | Enforcer | `EN0106` | `password123` |
-| Admin | `ADMIN01` | `admin123` |
+| Admin (password only) | — | `admin123` |
 
 To reset the demo data, clear the site's localStorage in your browser.
 
@@ -72,7 +72,7 @@ NEXT_PUBLIC_API_URL=https://your-backend.example.com/api
 ```ts
 Student  { id, fullName, contact, vehicleNumber, vehicleType, passStatus: "active"|"pending"|"rejected"|"expired", passValidUntil: string|null, qrToken: string|null }
 Payment  { id, studentId, kind: "pass"|"fee", amount, date, status: "pending"|"approved"|"rejected", slipUrl: string|null, feeId?: string|null }
-Fee      { id, studentId, vehicleNumber, amount, reason, date, status: "unpaid"|"pending"|"paid", issuedBy }
+Fee      { id, studentId, vehicleNumber, amount, reason, category: "general"|"unregistered", date, status: "unpaid"|"pending"|"paid", issuedBy }
 Enforcer { id, fullName }
 Admin    { id, fullName }
 LoginResult   { token, userId }
@@ -88,14 +88,14 @@ StudentLookup { student: Student, overdueFees: Fee[] }
 | POST | `/auth/student/login` | `{ id, password }` | `LoginResult` |
 | POST | `/auth/student/register` | **multipart**: `id, fullName, contact, vehicleNumber, vehicleType, password, paymentSlip (file, optional)` | `{ ok: true }`. See "Vehicle pass rules" below. |
 | POST | `/auth/enforcer/login` | `{ id, password }` | `LoginResult` |
-| POST | `/auth/admin/login` | `{ id, password }` | `LoginResult` |
+| POST | `/auth/admin/login` | `{ password }` (**password only**, as in the design) | `LoginResult` |
 | GET | `/students/me` | — | `Student` |
 | GET | `/students/me/payments` | — | `Payment[]` |
 | GET | `/students/me/fees` | — | `Fee[]` |
 | POST | `/payments` | **multipart**: `kind, amount, feeId?, slip (file)` | `Payment` (status `pending`). If `feeId` is sent, set that fee to `pending`. |
 | GET | `/enforcers/me` | — | `Enforcer` |
 | GET | `/students/lookup?q=` | `q` = scanned QR text, IT number, or vehicle number | `StudentLookup` |
-| POST | `/fees` | `{ studentId, amount, reason }` | `Fee` (status `unpaid`, `issuedBy` = the logged-in enforcer) |
+| POST | `/fees` | `{ studentId, amount, reason, category }` | `Fee` (status `unpaid`, `issuedBy` = the logged-in enforcer) |
 | GET | `/enforcers/me/fees?status=` | optional `status` | `Fee[]` issued by this enforcer |
 | GET | `/admins/me` | — | `Admin` |
 | GET | `/admin/payments?status=&kind=&studentId=` | all optional | `Payment[]` |
@@ -119,6 +119,8 @@ StudentLookup { student: Student, overdueFees: Fee[] }
 Only an admin can create enforcer accounts, through `POST /admin/enforcers` from the admin portal's **Enforcers** page. There is **no** enforcer sign-up endpoint, so the backend must reject that route for anyone who isn't logged in as an admin. Enforcer IDs look like `EN0107`.
 
 ### Fee rules
+
+- **Fee categories:** `category: "unregistered"` is a fine for parking without a QR pass. The student pays it under **Pay Unregistered Fee**. Every other fine is `"general"`. The enforcer's form sets the category from the reason they pick.
 
 - **Fee payment approved:** set the linked fee to `paid`.
 - **Fee payment rejected:** set the linked fee back to `unpaid`.

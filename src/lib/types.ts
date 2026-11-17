@@ -33,12 +33,19 @@ export interface Payment {
 
 export type FeeStatus = "unpaid" | "pending" | "paid";
 
+/**
+ * "unregistered" = fined for parking without a QR pass (shown under "Pay Unregistered Fee").
+ * "general"      = any other parking fine.
+ */
+export type FeeCategory = "general" | "unregistered";
+
 export interface Fee {
   id: string;
   studentId: string;
   vehicleNumber: string;
   amount: number;
   reason: string;
+  category: FeeCategory;
   date: string;
   status: FeeStatus;
   issuedBy: string; // enforcer ID
@@ -47,6 +54,13 @@ export interface Fee {
 export interface Enforcer {
   id: string; // e.g. EN0106
   fullName: string;
+}
+
+export interface NewFeeInput {
+  studentId: string;
+  amount: number;
+  reason: string;
+  category: FeeCategory;
 }
 
 export interface NewEnforcerInput {

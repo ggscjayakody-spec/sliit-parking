@@ -6,7 +6,7 @@
  * Demo logins:
  *   Student  IT26123567 / password123
  *   Enforcer EN0106     / password123
- *   Admin    ADMIN01    / admin123
+ *   Admin    (password only) admin123
  */
 import { ApiError } from "./errors";
 import { getSession } from "./session";
@@ -17,6 +17,7 @@ import type {
   FeeStatus,
   LoginResult,
   NewEnforcerInput,
+  NewFeeInput,
   Payment,
   PaymentKind,
   PaymentStatus,
@@ -33,7 +34,7 @@ interface DB {
   fees: Fee[];
 }
 
-const KEY = "sp_mock_db_v3";
+const KEY = "sp_mock_db_v4";
 
 /** A drawn sample bank slip so the admin's slip preview has something to show in demo mode. */
 const SAMPLE_SLIP =
@@ -119,9 +120,11 @@ function seed(): DB {
       { id: "P7", studentId: "IT26543867", kind: "fee", amount: 250, date: "2026-10-02", status: "rejected", slipUrl: null },
     ],
     fees: [
-      { id: "F1", studentId: "IT26123567", vehicleNumber: "CCC-6767", amount: 250, reason: "Parked in a no-parking zone", date: "2026-11-04", status: "pending", issuedBy: "EN0106" },
-      { id: "F2", studentId: "IT26478467", vehicleNumber: "BKL-6567", amount: 250, reason: "Unregistered parking slot", date: "2026-10-04", status: "paid", issuedBy: "EN0106" },
-      { id: "F3", studentId: "IT26543867", vehicleNumber: "KS-9467", amount: 250, reason: "Parked without a valid pass", date: "2026-10-02", status: "unpaid", issuedBy: "EN0106" },
+      { id: "F1", studentId: "IT26123567", vehicleNumber: "CCC-6767", amount: 250, reason: "Parked in a no-parking zone", category: "general", date: "2026-11-04", status: "pending", issuedBy: "EN0106" },
+      { id: "F2", studentId: "IT26478467", vehicleNumber: "BKL-6567", amount: 250, reason: "Parked without a QR pass", category: "unregistered", date: "2026-10-04", status: "paid", issuedBy: "EN0106" },
+      { id: "F3", studentId: "IT26543867", vehicleNumber: "KS-9467", amount: 250, reason: "Parked without a QR pass", category: "unregistered", date: "2026-10-02", status: "unpaid", issuedBy: "EN0106" },
+      { id: "F4", studentId: "IT26123567", vehicleNumber: "CCC-6767", amount: 250, reason: "Parked without a QR pass", category: "unregistered", date: "2026-11-12", status: "unpaid", issuedBy: "EN0106" },
+      { id: "F5", studentId: "IT26123567", vehicleNumber: "CCC-6767", amount: 150, reason: "Parked across two slots", category: "general", date: "2026-11-10", status: "unpaid", issuedBy: "EN0106" },
     ],
   };
 }
@@ -235,9 +238,9 @@ export const mock = {
     return delay({ token: `mock-${e.id}`, userId: e.id });
   },
 
-  async adminLogin(id: string, password: string): Promise<LoginResult> {
-    const a = load().admins.find((x) => x.id.toUpperCase() === id.trim().toUpperCase());
-    if (!a || a.password !== password) throw new ApiError("Incorrect admin ID or password.", 401);
+  async adminLogin(password: string): Promise<LoginResult> {
+    const a = load().admins.find((x) => x.password === password);
+    if (!a) throw new ApiError("Incorrect password.", 401);
     return delay({ token: `mock-${a.id}`, userId: a.id });
   },
 
@@ -301,7 +304,7 @@ export const mock = {
     });
   },
 
-  async issueFee(input: { studentId: string; amount: number; reason: string }): Promise<Fee> {
+  async issueFee(input: NewFeeInput): Promise<Fee> {
     const enforcerId = whoAmI("enforcer");
     const db = load();
     const s = db.students.find((x) => x.id === input.studentId);
@@ -312,6 +315,7 @@ export const mock = {
       vehicleNumber: s.vehicleNumber,
       amount: input.amount,
       reason: input.reason,
+      category: input.category,
       date: today(),
       status: "unpaid",
       issuedBy: enforcerId,

@@ -8,9 +8,8 @@ import { useApi, useLogout, useRequireRole } from "@/lib/hooks";
 import { Avatar, Card, cx, Loading, Logo } from "@/components/ui";
 
 const NAV = [
-  { href: "/admin", label: "Pending Payments" },
+  { href: "/admin", label: "Payments & Students" },
   { href: "/admin/history", label: "Payment History" },
-  { href: "/admin/students", label: "Student Details" },
   { href: "/admin/enforcers", label: "Enforcers" },
 ];
 

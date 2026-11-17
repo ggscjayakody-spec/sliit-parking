@@ -28,7 +28,6 @@ export default function IssuedFees() {
               { value: "all", label: "All" },
               { value: "pending", label: "Pending" },
               { value: "unpaid", label: "Unpaid" },
-              { value: "paid", label: "Paid" },
             ]}
           />
         </div>

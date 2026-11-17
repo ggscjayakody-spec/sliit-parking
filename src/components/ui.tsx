@@ -41,17 +41,30 @@ export function PageTitle({ title, subtitle }: { title: string; subtitle?: strin
   );
 }
 
+const backClass =
+  "lift inline-flex w-fit items-center gap-1 rounded-full border border-lilac-300 bg-white/70 py-1.5 pl-2.5 pr-4 text-sm font-bold text-ink-soft hover:bg-white hover:text-ink";
+const backIcon = (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+    <path d="m15 18-6-6 6-6" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
 export function BackLink({ href, label = "Back" }: { href: string; label?: string }) {
   return (
-    <Link
-      href={href}
-      className="lift inline-flex w-fit items-center gap-1 rounded-full border border-lilac-300 bg-white/70 py-1.5 pl-2.5 pr-4 text-sm font-bold text-ink-soft hover:bg-white hover:text-ink"
-    >
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-        <path d="m15 18-6-6 6-6" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
+    <Link href={href} className={backClass}>
+      {backIcon}
       {label}
     </Link>
+  );
+}
+
+/** Same look as BackLink, for going back a step inside one page. */
+export function BackButton({ onClick, label = "Back" }: { onClick: () => void; label?: string }) {
+  return (
+    <button type="button" onClick={onClick} className={backClass}>
+      {backIcon}
+      {label}
+    </button>
   );
 }
 
