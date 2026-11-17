@@ -6,7 +6,7 @@ import { api } from "@/lib/api";
 import { useApi } from "@/lib/hooks";
 import type { Fee } from "@/lib/types";
 import { AddFeeForm } from "@/components/AddFeeForm";
-import { BackLink, Button, ButtonLink, Card, ErrorText, Loading, money } from "@/components/ui";
+import { BackLink, Button, ButtonLink, Card, ErrorText, hoursLabel, Loading, money } from "@/components/ui";
 import { StudentDetails } from "@/components/StudentDetails";
 
 export default function StudentResultPage() {
@@ -36,10 +36,15 @@ function StudentResult() {
       ) : (
         <>
           <StudentDetails lookup={data} />
-          {added ? (
+          {data.student.passStatus === "active" ? (
+            <Card className="p-4 text-center">
+              <p className="font-extrabold text-ok">Valid parking pass</p>
+              <p className="text-sm text-ink-soft">No parking fee applies to this student.</p>
+            </Card>
+          ) : added ? (
             <Card className="p-4 text-center">
               <p className="font-extrabold text-ok">Fee added: {money(added.amount)}</p>
-              <p className="text-sm text-ink-soft">{added.reason}</p>
+              <p className="text-sm text-ink-soft">Parking for {hoursLabel(added.hours)}</p>
               <Button className="mt-3" onClick={() => { setAdded(null); setAdding(true); }}>
                 Add another fee
               </Button>

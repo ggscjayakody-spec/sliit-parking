@@ -34,7 +34,7 @@ interface DB {
   fees: Fee[];
 }
 
-const KEY = "sp_mock_db_v4";
+const KEY = "sp_mock_db_v5";
 
 /** A drawn sample bank slip so the admin's slip preview has something to show in demo mode. */
 const SAMPLE_SLIP =
@@ -107,24 +107,36 @@ function seed(): DB {
         qrToken: null,
         password: "password123",
       },
+      // Pass ran out on 2026-10-31 → counts as "no pass", can be charged parking fees
+      {
+        id: "IT26112233",
+        fullName: "Dilini Wickramasinghe",
+        contact: "0761122334",
+        vehicleNumber: "CAR-2211",
+        vehicleType: "Car",
+        passStatus: "active",
+        passValidUntil: "2026-10-31",
+        qrToken: "SLIITPARK:IT26112233",
+        password: "password123",
+      },
     ],
     enforcers: [{ id: "EN0106", fullName: "John Doe", password: "password123" }],
     admins: [{ id: "ADMIN01", fullName: "Parking Admin", password: "admin123" }],
     payments: [
-      { id: "P1", studentId: "IT26123567", kind: "fee", amount: 250, date: "2026-11-04", status: "pending", slipUrl: null, feeId: "F1" },
-      { id: "P2", studentId: "IT26123567", kind: "fee", amount: 150, date: "2026-10-12", status: "approved", slipUrl: null },
+      { id: "P1", studentId: "IT26543867", kind: "fee", amount: 250, date: "2026-11-05", status: "pending", slipUrl: null, feeId: "F1" },
+      { id: "P2", studentId: "IT26112233", kind: "fee", amount: 150, date: "2026-11-09", status: "approved", slipUrl: null, feeId: "F2" },
       { id: "P3", studentId: "IT26123567", kind: "pass", amount: 1500, date: "2026-09-09", status: "approved", slipUrl: null },
-      { id: "P4", studentId: "IT26478467", kind: "fee", amount: 250, date: "2026-11-02", status: "pending", slipUrl: null, feeId: "F2" },
       { id: "P5", studentId: "IT26543867", kind: "pass", amount: 1500, date: "2026-11-03", status: "pending", slipUrl: SAMPLE_SLIP },
       { id: "P6", studentId: "IT26478467", kind: "pass", amount: 1500, date: "2026-10-04", status: "approved", slipUrl: null },
-      { id: "P7", studentId: "IT26543867", kind: "fee", amount: 250, date: "2026-10-02", status: "rejected", slipUrl: null },
+      { id: "P8", studentId: "IT26112233", kind: "pass", amount: 1500, date: "2025-10-31", status: "approved", slipUrl: null },
     ],
+    // Parking fees only go to students without a valid pass (pending, rejected or expired).
     fees: [
-      { id: "F1", studentId: "IT26123567", vehicleNumber: "CCC-6767", amount: 250, reason: "Parked in a no-parking zone", category: "general", date: "2026-11-04", status: "pending", issuedBy: "EN0106" },
-      { id: "F2", studentId: "IT26478467", vehicleNumber: "BKL-6567", amount: 250, reason: "Parked without a QR pass", category: "unregistered", date: "2026-10-04", status: "paid", issuedBy: "EN0106" },
-      { id: "F3", studentId: "IT26543867", vehicleNumber: "KS-9467", amount: 250, reason: "Parked without a QR pass", category: "unregistered", date: "2026-10-02", status: "unpaid", issuedBy: "EN0106" },
-      { id: "F4", studentId: "IT26123567", vehicleNumber: "CCC-6767", amount: 250, reason: "Parked without a QR pass", category: "unregistered", date: "2026-11-12", status: "unpaid", issuedBy: "EN0106" },
-      { id: "F5", studentId: "IT26123567", vehicleNumber: "CCC-6767", amount: 150, reason: "Parked across two slots", category: "general", date: "2026-11-10", status: "unpaid", issuedBy: "EN0106" },
+      { id: "F1", studentId: "IT26543867", vehicleNumber: "KS-9467", hours: 5, amount: 250, date: "2026-11-04", status: "pending", issuedBy: "EN0106" },
+      { id: "F2", studentId: "IT26112233", vehicleNumber: "CAR-2211", hours: 3, amount: 150, date: "2026-11-08", status: "paid", issuedBy: "EN0106" },
+      { id: "F3", studentId: "IT26777001", vehicleNumber: "WP-4521", hours: 5, amount: 250, date: "2026-11-12", status: "unpaid", issuedBy: "EN0106" },
+      { id: "F4", studentId: "IT26543867", vehicleNumber: "KS-9467", hours: 2, amount: 100, date: "2026-11-14", status: "unpaid", issuedBy: "EN0106" },
+      { id: "F5", studentId: "IT26112233", vehicleNumber: "CAR-2211", hours: 4, amount: 200, date: "2026-11-15", status: "unpaid", issuedBy: "EN0106" },
     ],
   };
 }
@@ -152,6 +164,17 @@ function activatePass(s: Student) {
   s.passStatus = "active";
   s.passValidUntil = until.toISOString().slice(0, 10);
   s.qrToken = `SLIITPARK:${s.id}`;
+}
+
+/** Pass is valid only if approved AND not past its validity date. */
+function hasValidPass(s: Student) {
+  return s.passStatus === "active" && !!s.passValidUntil && s.passValidUntil >= today();
+}
+
+/** What the API returns for a student: no password, and "expired" worked out from the date. */
+function publicStudent(row: DB["students"][number]): Student {
+  const s = strip(row);
+  return s.passStatus === "active" && !hasValidPass(s) ? { ...s, passStatus: "expired" } : s;
 }
 
 function revokePass(s: Student) {
@@ -248,7 +271,7 @@ export const mock = {
     const id = whoAmI("student");
     const s = load().students.find((x) => x.id === id);
     if (!s) throw new ApiError("Account not found.", 404);
-    return delay(strip(s));
+    return delay(publicStudent(s));
   },
 
   async myPayments(): Promise<Payment[]> {
@@ -281,7 +304,7 @@ export const mock = {
     }
     if (input.kind === "pass") {
       const s = db.students.find((x) => x.id === id);
-      if (s && s.passStatus !== "active") s.passStatus = "pending"; // admin must approve first
+      if (s && !hasValidPass(s)) s.passStatus = "pending"; // admin must approve first
     }
     save(db);
     return delay(p);
@@ -299,7 +322,7 @@ export const mock = {
     const s = findStudent(db, q);
     if (!s) throw new ApiError("No student found for that QR, ID or vehicle number.", 404);
     return delay({
-      student: strip(s),
+      student: publicStudent(s),
       overdueFees: db.fees.filter((f) => f.studentId === s.id && f.status === "unpaid"),
     });
   },
@@ -309,13 +332,13 @@ export const mock = {
     const db = load();
     const s = db.students.find((x) => x.id === input.studentId);
     if (!s) throw new ApiError("Student not found.", 404);
+    if (hasValidPass(s)) throw new ApiError(`${s.fullName} has a valid parking pass, so no parking fee applies.`, 409);
     const fee: Fee = {
       id: uid("F"),
       studentId: s.id,
       vehicleNumber: s.vehicleNumber,
+      hours: input.hours,
       amount: input.amount,
-      reason: input.reason,
-      category: input.category,
       date: today(),
       status: "unpaid",
       issuedBy: enforcerId,
@@ -386,8 +409,8 @@ export const mock = {
       const s = db.students.find((x) => x.id === p.studentId);
       if (s) {
         if (status === "approved") {
-          if (s.passStatus !== "active") activatePass(s);
-        } else if (s.passStatus !== "active") {
+          activatePass(s); // new pass, or renewal of an expired one
+        } else if (!hasValidPass(s)) {
           revokePass(s); // slip refused → student must upload a new one
         }
       }

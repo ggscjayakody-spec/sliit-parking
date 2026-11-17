@@ -4,15 +4,15 @@ import { useMemo, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { api, PRICES } from "@/lib/api";
 import { errorMessage, useApi } from "@/lib/hooks";
-import { BackButton, BackLink, Button, Card, cx, ErrorText, FileField, Loading, money, StatusBadge } from "@/components/ui";
+import { BackButton, BackLink, Button, Card, cx, ErrorText, FileField, hoursLabel, Loading, money, StatusBadge } from "@/components/ui";
 import { useStudent } from "@/components/StudentContext";
 
-type Group = "fees" | "unregistered";
+type Group = "pass" | "unregistered";
 type Choice = {
   key: string;
   group: Group;
   label: string; // "250/= | 2026-11-04", as in the design's dropdowns
-  reason: string;
+  detail: string;
   date: string;
   amount: number;
   kind: "pass" | "fee";
@@ -21,7 +21,8 @@ type Choice = {
 
 /**
  * Pay Fees, following the design:
- *  1. Two dropdowns: your fees, and "Pay Unregistered Fee" (fines for parking without a QR pass).
+ *  1. Two dropdowns: the vehicle pass fee, and "Pay Unregistered Fee" (parking fees charged
+ *     by enforcers while you had no valid pass).
  *  2. Picking one opens the red screen: the fee on the left, the slip upload box on the right.
  */
 export default function PayFees() {
@@ -36,21 +37,21 @@ export default function PayFees() {
       .filter((f) => f.status === "unpaid")
       .map((f) => ({
         key: f.id,
-        group: f.category === "unregistered" ? "unregistered" : "fees",
+        group: "unregistered",
         label: `${money(f.amount)} | ${f.date}`,
-        reason: f.reason,
+        detail: `Parking for ${hoursLabel(f.hours)} · ${f.vehicleNumber}`,
         date: f.date,
         amount: f.amount,
         kind: "fee",
         feeId: f.id,
       }));
-    // Students who registered without a slip pay the pass fee here too.
+    // No valid pass (skipped the slip at sign-up, rejected, or expired) → pay the pass fee here.
     if (student.passStatus !== "active" && payments && !passSlipPending) {
       list.unshift({
         key: "pass",
-        group: "fees",
+        group: "pass",
         label: `${money(PRICES.pass)} | Vehicle pass`,
-        reason: "Vehicle pass fee (valid for 1 year)",
+        detail: student.passStatus === "expired" ? "Renews your pass for 1 year" : "Valid for 1 year",
         date: new Date().toISOString().slice(0, 10),
         amount: PRICES.pass,
         kind: "pass",
@@ -71,7 +72,7 @@ export default function PayFees() {
   }
 
   const others = (fees ?? []).filter((f) => f.status !== "unpaid");
-  const regular = choices.filter((c) => c.group === "fees");
+  const passChoices = choices.filter((c) => c.group === "pass");
   const unregistered = choices.filter((c) => c.group === "unregistered");
 
   return (
@@ -89,11 +90,22 @@ export default function PayFees() {
           </div>
         ) : (
           <div className="mt-5 grid gap-4 md:grid-cols-2 md:divide-x md:divide-lilac-200">
-            <FeePicker title="Fees" hint="Fines and your vehicle pass fee" choices={regular} onPick={setSelected} />
+            <FeePicker
+              title="Vehicle Pass Fee"
+              hint={
+                student.passStatus === "active"
+                  ? "Your pass is valid"
+                  : passSlipPending
+                    ? "Your pass slip is waiting for approval"
+                    : "Get your QR parking pass"
+              }
+              choices={passChoices}
+              onPick={setSelected}
+            />
             <div className="md:pl-4">
               <FeePicker
                 title="Pay Unregistered Fee"
-                hint="Fines for parking without a QR pass"
+                hint="Parking fees from times you parked without a valid pass"
                 choices={unregistered}
                 onPick={setSelected}
               />
@@ -108,7 +120,7 @@ export default function PayFees() {
               {others.map((f) => (
                 <li key={f.id} className="flex items-center justify-between gap-3 rounded-lg bg-white/50 px-3 py-2">
                   <span className="min-w-0 truncate">
-                    {money(f.amount)} · {f.date} · {f.reason}
+                    {money(f.amount)} · {f.date} · {hoursLabel(f.hours)}
                   </span>
                   <StatusBadge status={f.status} />
                 </li>
@@ -177,7 +189,7 @@ function PayScreen({ choice, siblings, onSwitch }: { choice: Choice; siblings: C
     <form onSubmit={submit} className="bg-mesh-coral grid gap-4 rounded-2xl p-4 text-white shadow-xl shadow-coral/25 sm:p-5 md:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)]">
       <div className="flex flex-col gap-4">
         <p className="text-sm font-bold uppercase tracking-wider text-white/85">
-          {choice.group === "unregistered" ? "Pay Unregistered Fee" : "Pay Fee"}
+          {choice.group === "unregistered" ? "Pay Unregistered Fee" : "Vehicle Pass Fee"}
         </p>
         <select
           value={choice.key}
@@ -195,8 +207,8 @@ function PayScreen({ choice, siblings, onSwitch }: { choice: Choice; siblings: C
           <p className="text-3xl font-extrabold">{money(choice.amount)}</p>
           <dl className="mt-3 space-y-1 text-sm">
             <div className="flex justify-between gap-3">
-              <dt className="text-white/75">Reason</dt>
-              <dd className="text-right font-semibold">{choice.reason}</dd>
+              <dt className="text-white/75">Details</dt>
+              <dd className="text-right font-semibold">{choice.detail}</dd>
             </div>
             <div className="flex justify-between gap-3">
               <dt className="text-white/75">Date</dt>

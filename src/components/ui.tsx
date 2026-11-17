@@ -291,5 +291,6 @@ export function Avatar({ name }: { name: string }) {
 }
 
 export const money = (n: number) => `${n.toLocaleString("en-LK")}/=`;
+export const hoursLabel = (h: number) => `${h} hour${h === 1 ? "" : "s"}`;
 
 export { cx };

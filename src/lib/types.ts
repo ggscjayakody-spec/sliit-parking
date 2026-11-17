@@ -34,18 +34,16 @@ export interface Payment {
 export type FeeStatus = "unpaid" | "pending" | "paid";
 
 /**
- * "unregistered" = fined for parking without a QR pass (shown under "Pay Unregistered Fee").
- * "general"      = any other parking fine.
+ * A parking fee: issued by an enforcer when a student parks WITHOUT a valid pass
+ * (no QR yet, or the pass has expired). It charges for the time they parked.
+ * Students pay these under "Pay Unregistered Fee".
  */
-export type FeeCategory = "general" | "unregistered";
-
 export interface Fee {
   id: string;
   studentId: string;
   vehicleNumber: string;
+  hours: number; // parking period given by the enforcer
   amount: number;
-  reason: string;
-  category: FeeCategory;
   date: string;
   status: FeeStatus;
   issuedBy: string; // enforcer ID
@@ -58,9 +56,8 @@ export interface Enforcer {
 
 export interface NewFeeInput {
   studentId: string;
+  hours: number;
   amount: number;
-  reason: string;
-  category: FeeCategory;
 }
 
 export interface NewEnforcerInput {

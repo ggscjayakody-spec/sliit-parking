@@ -4,7 +4,7 @@ import { useState } from "react";
 import { api } from "@/lib/api";
 import { useApi } from "@/lib/hooks";
 import type { FeeStatus } from "@/lib/types";
-import { BackLink, Card, Empty, ErrorText, Loading, money, SearchInput, StatusBadge, Tabs } from "@/components/ui";
+import { BackLink, Card, Empty, ErrorText, hoursLabel, Loading, money, SearchInput, StatusBadge, Tabs } from "@/components/ui";
 
 type Filter = "all" | FeeStatus;
 
@@ -50,7 +50,7 @@ export default function IssuedFees() {
                   <StatusBadge status={f.status} />
                 </div>
                 <p className="mt-1 truncate text-ink-soft">
-                  {money(f.amount)} · {f.reason} · {f.studentId}
+                  {money(f.amount)} · {hoursLabel(f.hours)} · {f.studentId}
                 </p>
               </li>
             ))

@@ -19,10 +19,10 @@ export default function StudentPass() {
         <div className="bg-mesh-coral flex flex-col gap-3 rounded-2xl p-5 text-white shadow-lg shadow-coral/30 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="font-extrabold">
-              You have {unpaid.length} unpaid fee{unpaid.length > 1 ? "s" : ""}
+              You have {unpaid.length} unpaid parking fee{unpaid.length > 1 ? "s" : ""}
             </p>
             <p className="text-sm text-white/90">
-              Total {money(unpaid.reduce((s, f) => s + f.amount, 0))}. Unpaid fees can block your vehicle pass.
+              Total {money(unpaid.reduce((s, f) => s + f.amount, 0))}, for parking without a valid pass. Pay them under Pay Unregistered Fee.
             </p>
           </div>
           <ButtonLink href="/student/pay" className="!bg-white !text-coral-dark !border-white">

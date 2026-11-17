@@ -30,6 +30,7 @@ If `NEXT_PUBLIC_API_URL` is **not** set, the app uses built-in sample data (`src
 | Student (active pass) | `IT26123567` | `password123` |
 | Student (slip waiting for admin) | `IT26543867` | `password123` |
 | Student (pending, no slip) | `IT26777001` | `password123` |
+| Student (pass expired) | `IT26112233` | `password123` |
 | Enforcer | `EN0106` | `password123` |
 | Admin (password only) | — | `admin123` |
 
@@ -72,7 +73,7 @@ NEXT_PUBLIC_API_URL=https://your-backend.example.com/api
 ```ts
 Student  { id, fullName, contact, vehicleNumber, vehicleType, passStatus: "active"|"pending"|"rejected"|"expired", passValidUntil: string|null, qrToken: string|null }
 Payment  { id, studentId, kind: "pass"|"fee", amount, date, status: "pending"|"approved"|"rejected", slipUrl: string|null, feeId?: string|null }
-Fee      { id, studentId, vehicleNumber, amount, reason, category: "general"|"unregistered", date, status: "unpaid"|"pending"|"paid", issuedBy }
+Fee      { id, studentId, vehicleNumber, hours, amount, date, status: "unpaid"|"pending"|"paid", issuedBy }
 Enforcer { id, fullName }
 Admin    { id, fullName }
 LoginResult   { token, userId }
@@ -95,7 +96,7 @@ StudentLookup { student: Student, overdueFees: Fee[] }
 | POST | `/payments` | **multipart**: `kind, amount, feeId?, slip (file)` | `Payment` (status `pending`). If `feeId` is sent, set that fee to `pending`. |
 | GET | `/enforcers/me` | — | `Enforcer` |
 | GET | `/students/lookup?q=` | `q` = scanned QR text, IT number, or vehicle number | `StudentLookup` |
-| POST | `/fees` | `{ studentId, amount, reason, category }` | `Fee` (status `unpaid`, `issuedBy` = the logged-in enforcer) |
+| POST | `/fees` | `{ studentId, hours, amount }` | `Fee` (status `unpaid`, `issuedBy` = the logged-in enforcer). Return `409` if the student has a valid pass. |
 | GET | `/enforcers/me/fees?status=` | optional `status` | `Fee[]` issued by this enforcer |
 | GET | `/admins/me` | — | `Admin` |
 | GET | `/admin/payments?status=&kind=&studentId=` | all optional | `Payment[]` |
@@ -120,7 +121,11 @@ Only an admin can create enforcer accounts, through `POST /admin/enforcers` from
 
 ### Fee rules
 
-- **Fee categories:** `category: "unregistered"` is a fine for parking without a QR pass. The student pays it under **Pay Unregistered Fee**. Every other fine is `"general"`. The enforcer's form sets the category from the reason they pick.
+- **What a fee is:** a parking charge for a period of time (`hours`), issued by an enforcer. There are no fines for other reasons.
+- **Who can get a fee:** only students **without a valid pass**, meaning `passStatus` is `pending` or `rejected` (no QR yet, for example because they registered without a slip), or the pass has **expired**. Refuse with `409` if the student's pass is valid.
+- **Amount:** the frontend suggests `hours × 50/=` (the `PRICES.hourly` setting in `src/lib/api.ts`), and the enforcer can change it. Store the amount that was sent.
+- **Paying:** students pay fees under **Pay Unregistered Fee**. Students without a valid pass can also pay the 1,500/= pass fee under **Vehicle Pass Fee**, which renews an expired pass once an admin approves it.
+- **Expiry:** if `passValidUntil` is before today, return `passStatus: "expired"`.
 
 - **Fee payment approved:** set the linked fee to `paid`.
 - **Fee payment rejected:** set the linked fee back to `unpaid`.

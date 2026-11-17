@@ -150,6 +150,6 @@ export const api = {
 
 /** Fixed prices shown in the UI. Move to the backend if they need to change without a redeploy. */
 export const PRICES = {
-  pass: 1500,
-  unregistered: 250,
+  pass: 1500, // vehicle pass, valid 1 year
+  hourly: 50, // parking fee per hour for students without a valid pass (placeholder rate)
 };
